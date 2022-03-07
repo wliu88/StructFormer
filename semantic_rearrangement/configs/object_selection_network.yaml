@@ -1,0 +1,32 @@
+random_seed: 1
+device: 0
+
+save_model: True
+save_best_model: True
+
+dataset:
+  batch_size: 64
+  max_num_all_objects: 11
+  max_num_shape_parameters: 5
+  max_num_rearrange_features: 1
+  max_num_anchor_features: 3
+  num_pts: 1024
+  num_workers: 4
+  pin_memory: True
+
+model:
+  name: object_selection_network
+  num_attention_heads: 8
+  encoder_hidden_dim: 32
+  encoder_dropout: 0.2
+  encoder_activation: relu
+  encoder_num_layers: 8
+  use_focal_loss: True
+  focal_loss_gamma: 2
+
+training:
+  learning_rate: 0.0001
+  max_epochs: 200
+  l2: 0.0001
+  lr_restart: 3000
+  warmup: 10

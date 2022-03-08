@@ -30,7 +30,10 @@ from structformer.evaluation.inference import PointCloudRearrangement
 
 
 def run_demo(object_selection_model_dir, pose_generation_model_dir, dirs_config, beam_size=3):
-
+    """
+    Run a simple demo. Creates the object selection inference model, pose generation model,
+    and so on. Requires paths to the model + config directories.
+    """
     object_selection_inference = ObjectSelectionInference(object_selection_model_dir, dirs_cfg)
     pose_generation_inference = PriorInference(pose_generation_model_dir, dirs_cfg)
 

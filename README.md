@@ -40,8 +40,8 @@ Trained models are stored in `/experiments`
 cd $STRUCTFORMER/structformer/demo/
 python run_full_pipeline.py \
   --dataset_base_dir $STRUCTFORMER/data_new_objects_test_split \
-  --pose_generation_model_dir $STRUCTFORMER/object_selection_network/best_model \
-  --pose_generation_model_dir $STRUCTFORMER/structformer_circle/best_model \
+  --object_selection_model_dir $STRUCTFORMER/models/object_selection_network/best_model \
+  --pose_generation_model_dir $STRUCTFORMER/models/structformer_circle/best_model \
   --dirs_config $STRUCTFORMER/configs/data/circle_dirs.yaml
 ```
 

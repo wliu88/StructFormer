@@ -46,6 +46,9 @@ python run_full_pipeline.py \
 ```
 
 ### Evaluate Pose Generation Networks
+
+Where `model_name` is one of `structformer_no_encoder`, `structformer_no_structure`, `object_selection_network`, `structformer`, and `structure` is one of `circle`, `line`, `tower`, or `dinner`:
+
 ```bash
 cd structformer/evaluation/
 python test_{model_name}.py \
@@ -55,6 +58,9 @@ python test_{model_name}.py \
 ```
 
 ### Evaluate Object Selection Network
+
+Where `structure` is as above:
+
 ```bash
 cd structformer/evaluation/
 python test_object_selection_network.py \

@@ -5,7 +5,7 @@ import copy
 import tqdm
 import argparse
 from omegaconf import OmegaConf
-
+import time
 from torch.utils.data import DataLoader
 
 from semantic_rearrangement.data.tokenizer import Tokenizer
@@ -216,17 +216,23 @@ def inference_beam_decoding(model_dir, dirs_cfg, beam_size=100, max_scene_decode
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a simple model")
+    parser.add_argument("--dataset_base_dir", help='location of the dataset', type=str)
     parser.add_argument("--model_dir", help='location for the saved model', type=str)
     parser.add_argument("--dirs_config", help='config yaml file for directories', default="", type=str)
     args = parser.parse_args()
 
-    # debug only
-    args.model_dir = "/home/weiyu/Research/intern/public-semantic_rearrangement/models/structformer_no_structure_dinner/best_model"
-    args.dirs_config = "/home/weiyu/Research/intern/public-semantic_rearrangement/semantic_rearrangement/configs/dinner_dirs.yaml"
+    os.environ["DATETIME"] = time.strftime("%Y%m%d-%H%M%S")
+
+    # # debug only
+    # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects_test_split"
+    # args.model_dir = "/home/weiyu/Research/intern/StructFormer/models/structformer_no_structure_dinner/best_model"
+    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/semantic_rearrangement/configs/data/dinner_dirs.yaml"
 
     if args.dirs_config:
-        assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dir_config)
+        assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dirs_config)
         dirs_cfg = OmegaConf.load(args.dirs_config)
+        dirs_cfg.dataset_base_dir = args.dataset_base_dir
+        OmegaConf.resolve(dirs_cfg)
     else:
         dirs_cfg = None
 

@@ -535,6 +535,102 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         return datum
 
+    def prepare_test_data(self, obj_xyzs, obj_rgbs, other_obj_xyzs, other_obj_rgbs, structure_parameters):
+
+        object_pad_mask = []
+        other_object_pad_mask = []
+        for obj in obj_xyzs:
+            object_pad_mask.append(0)
+        for obj in other_obj_xyzs:
+            other_object_pad_mask.append(0)
+        for i in range(self.max_num_objects - len(obj_xyzs)):
+            obj_xyzs.append(torch.zeros([1024, 3], dtype=torch.float32))
+            obj_rgbs.append(torch.zeros([1024, 3], dtype=torch.float32))
+            object_pad_mask.append(1)
+        for i in range(self.max_num_other_objects - len(other_obj_xyzs)):
+            other_obj_xyzs.append(torch.zeros([1024, 3], dtype=torch.float32))
+            other_obj_rgbs.append(torch.zeros([1024, 3], dtype=torch.float32))
+            other_object_pad_mask.append(1)
+
+        # language instruction
+        sentence = []
+        sentence_pad_mask = []
+        # structure parameters
+        # 5 parameters
+        if structure_parameters["type"] == "circle" or structure_parameters["type"] == "line":
+            sentence.append((structure_parameters["type"], "shape"))
+            sentence.append((structure_parameters["rotation"][2], "rotation"))
+            sentence.append((structure_parameters["position"][0], "position_x"))
+            sentence.append((structure_parameters["position"][1], "position_y"))
+            if structure_parameters["type"] == "circle":
+                sentence.append((structure_parameters["radius"], "radius"))
+            elif structure_parameters["type"] == "line":
+                sentence.append((structure_parameters["length"] / 2.0, "radius"))
+            for _ in range(5):
+                sentence_pad_mask.append(0)
+        else:
+            sentence.append((structure_parameters["type"], "shape"))
+            sentence.append((structure_parameters["rotation"][2], "rotation"))
+            sentence.append((structure_parameters["position"][0], "position_x"))
+            sentence.append((structure_parameters["position"][1], "position_y"))
+            for _ in range(4):
+                sentence_pad_mask.append(0)
+            sentence.append(("PAD", None))
+            sentence_pad_mask.append(1)
+
+        # placeholder for pose predictions
+        obj_x_outputs = [0] * self.max_num_objects
+        obj_y_outputs = [0] * self.max_num_objects
+        obj_z_outputs = [0] * self.max_num_objects
+        obj_theta_outputs = [[0] * 9] * self.max_num_objects
+        obj_x_inputs = [0] * self.max_num_objects
+        obj_y_inputs = [0] * self.max_num_objects
+        obj_z_inputs = [0] * self.max_num_objects
+        obj_theta_inputs = [[0] * 9] * self.max_num_objects
+        struct_x_inputs = [0]
+        struct_y_inputs = [0]
+        struct_z_inputs = [0]
+        struct_theta_inputs = [[0] * 9]
+
+        # used to indicate whether the token is an object point cloud or a part of the instruction
+        token_type_index = [0] * (self.max_num_shape_parameters) + [1] * (self.max_num_other_objects) + [2] * self.max_num_objects
+        position_index = list(range(self.max_num_shape_parameters)) + list(range(self.max_num_other_objects)) + list(range(self.max_num_objects))
+        struct_position_index = [0]
+        struct_token_type_index = [3]
+        struct_pad_mask = [0]
+
+        datum = {
+            "xyzs": obj_xyzs,
+            "rgbs": obj_rgbs,
+            "object_pad_mask": object_pad_mask,
+            "other_xyzs": other_obj_xyzs,
+            "other_rgbs": other_obj_rgbs,
+            "other_object_pad_mask": other_object_pad_mask,
+            "sentence": sentence,
+            "sentence_pad_mask": sentence_pad_mask,
+            "token_type_index": token_type_index,
+            "obj_x_outputs": obj_x_outputs,
+            "obj_y_outputs": obj_y_outputs,
+            "obj_z_outputs": obj_z_outputs,
+            "obj_theta_outputs": obj_theta_outputs,
+            "obj_x_inputs": obj_x_inputs,
+            "obj_y_inputs": obj_y_inputs,
+            "obj_z_inputs": obj_z_inputs,
+            "obj_theta_inputs": obj_theta_inputs,
+            "position_index": position_index,
+            "struct_position_index": struct_position_index,
+            "struct_token_type_index": struct_token_type_index,
+            "struct_pad_mask": struct_pad_mask,
+            "struct_x_inputs": struct_x_inputs,
+            "struct_y_inputs": struct_y_inputs,
+            "struct_z_inputs": struct_z_inputs,
+            "struct_theta_inputs": struct_theta_inputs,
+            "t": 0,
+            "filename": ""
+        }
+
+        return datum
+
     @staticmethod
     def convert_to_tensors(datum, tokenizer):
 

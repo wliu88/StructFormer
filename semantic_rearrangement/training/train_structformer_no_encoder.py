@@ -71,7 +71,7 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
                 struct_token_type_index = batch["struct_token_type_index"].to(device, non_blocking=True)
                 struct_pad_mask = batch["struct_pad_mask"].to(device, non_blocking=True)
 
-                tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1] + 1).to(device, non_blocking=True)
+                tgt_mask = generate_square_subsequent_mask(position_index.shape[1] + 1).to(device, non_blocking=True)
                 start_token = torch.zeros((object_pad_mask.shape[0], 1), dtype=torch.long).to(device, non_blocking=True)
 
                 # output
@@ -165,7 +165,7 @@ def validate(cfg, model, data_iter, epoch, device):
                 struct_token_type_index = batch["struct_token_type_index"].to(device, non_blocking=True)
                 struct_pad_mask = batch["struct_pad_mask"].to(device, non_blocking=True)
 
-                tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1] + 1).to(device, non_blocking=True)
+                tgt_mask = generate_square_subsequent_mask(position_index.shape[1] + 1).to(device, non_blocking=True)
                 start_token = torch.zeros((object_pad_mask.shape[0], 1), dtype=torch.long).to(device, non_blocking=True)
 
                 # output
@@ -279,8 +279,6 @@ def load_model(model_dir, dirs_cfg):
 
     # initialize model
     model_cfg = cfg.model
-    if cfg.degree_continuity_correction is None:
-        cfg.degree_continuity_correction = False
     model = PriorContinuousOutDecoderStructPCT6DDropoutAllObjects(vocab_size,
                                                                   num_attention_heads=model_cfg.num_attention_heads,
                                                                   encoder_hidden_dim=model_cfg.encoder_hidden_dim,
@@ -385,13 +383,17 @@ def run_model(cfg):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run a simple model")
+    parser.add_argument("--dataset_base_dir", help='location of the dataset', type=str)
     parser.add_argument("--main_config", help='config yaml file for the model',
                         default='../configs/structformer_no_encoder.yaml',
                         type=str)
     parser.add_argument("--dirs_config", help='config yaml file for directories',
-                        default='../configs/circle_dirs.yaml',
+                        default='../configs/data/circle_dirs.yaml',
                         type=str)
     args = parser.parse_args()
+
+    # # debug
+    # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects"
 
     assert os.path.exists(args.main_config), "Cannot find config yaml file at {}".format(args.main_config)
     assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dir_config)
@@ -401,6 +403,8 @@ if __name__ == "__main__":
     main_cfg = OmegaConf.load(args.main_config)
     dirs_cfg = OmegaConf.load(args.dirs_config)
     cfg = OmegaConf.merge(main_cfg, dirs_cfg)
+    cfg.dataset_base_dir = args.dataset_base_dir
+    OmegaConf.resolve(cfg)
 
     if not os.path.exists(cfg.experiment_dir):
         os.makedirs(cfg.experiment_dir)

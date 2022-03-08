@@ -1,8 +1,0 @@
-experiment_dir: ../../experiments/${env:DATETIME}
-
-dataset:
-  dirs:
-    - /home/weiyu/data_drive/data_new_objects/examples_dinner_new_objects/result
-  index_dirs:
-    - index_24k
-  vocab_dir: /home/weiyu/data_drive/data_new_objects/type_vocabs_coarse.json

@@ -1,0 +1,8 @@
+experiment_dir: ../../experiments/${env:DATETIME}
+dataset_base_dir: ???
+dataset:
+  dirs:
+    - ${dataset_base_dir}/examples_tower_new_objects/result
+  index_dirs:
+    - index_25k
+  vocab_dir: ${dataset_base_dir}/type_vocabs_coarse.json

@@ -355,13 +355,17 @@ def run_model(cfg):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run a simple model")
+    parser.add_argument("--dataset_base_dir", help='location of the dataset', type=str)
     parser.add_argument("--main_config", help='config yaml file for the model',
                         default='../configs/object_selection_network.yaml',
                         type=str)
     parser.add_argument("--dirs_config", help='config yaml file for directories',
-                        default='../configs/circle_dirs.yaml',
+                        default='../configs/data/circle_dirs.yaml',
                         type=str)
     args = parser.parse_args()
+
+    # # debug
+    # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects"
 
     assert os.path.exists(args.main_config), "Cannot find config yaml file at {}".format(args.main_config)
     assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dir_config)
@@ -371,6 +375,8 @@ if __name__ == "__main__":
     main_cfg = OmegaConf.load(args.main_config)
     dirs_cfg = OmegaConf.load(args.dirs_config)
     cfg = OmegaConf.merge(main_cfg, dirs_cfg)
+    cfg.dataset_base_dir = args.dataset_base_dir
+    OmegaConf.resolve(cfg)
 
     if not os.path.exists(cfg.experiment_dir):
         os.makedirs(cfg.experiment_dir)

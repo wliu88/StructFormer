@@ -685,7 +685,7 @@ def test_new_vis(xyz, rgb):
 #         vis.add_geometry(obb)
 
 
-def show_pcs(xyz, rgb, add_coordinate_frame=False, side_view=False, add_table=True):
+def show_pcs(xyz, rgb, add_coordinate_frame=False, side_view=True, add_table=True):
     """ Display point clouds """
     unordered_pc = np.concatenate(xyz, axis=0)
     unordered_rgb = np.concatenate(rgb, axis=0)

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import os
 import tqdm
-
+import time
 import argparse
 from omegaconf import OmegaConf
 
@@ -171,6 +171,7 @@ def inference(model_dir, dirs_cfg, visualize=False, inference_visualization_dir=
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a simple model")
+    parser.add_argument("--dataset_base_dir", help='location of the dataset', type=str)
     parser.add_argument("--model_dir", help='location for the saved model', type=str)
     parser.add_argument("--dirs_config", help='config yaml file for directories', default="", type=str)
     parser.add_argument("--inference_visualization_dir", help='location for saving visualizations of inference results',
@@ -178,17 +179,20 @@ if __name__ == "__main__":
     parser.add_argument("--visualize", default=1, type=int, help='whether to visualize inference results while running')
     args = parser.parse_args()
 
-    # debug only
-    args.model_dir = "/home/weiyu/Research/intern/public-semantic_rearrangement/models/object_selection_network/best_model"
-    args.dirs_config = "/home/weiyu/Research/intern/public-semantic_rearrangement/semantic_rearrangement/configs/line_dirs.yaml"
-    args.visualize = True
+    os.environ["DATETIME"] = time.strftime("%Y%m%d-%H%M%S")
+
+    # # debug only
+    # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects_test_split"
+    # args.model_dir = "/home/weiyu/Research/intern/StructFormer/models/object_selection_network/best_model"
+    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/semantic_rearrangement/configs/data/line_dirs.yaml"
+    # args.visualize = True
 
     if args.dirs_config:
-        assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dir_config)
+        assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dirs_config)
         dirs_cfg = OmegaConf.load(args.dirs_config)
+        dirs_cfg.dataset_base_dir = args.dataset_base_dir
+        OmegaConf.resolve(dirs_cfg)
     else:
         dirs_cfg = None
 
     inference(args.model_dir, dirs_cfg, args.visualize, args.inference_visualization_dir)
-
-    # inference_model(args.model_dir, visualize=args.visualize, inference_visualization_dir=args.inference_visualization_dir)

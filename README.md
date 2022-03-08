@@ -4,6 +4,7 @@ This repo contains pytorch code for semantic rearrangement.
 
 ## Dependencies
 - `h5py==2.10`: this specific version is needed.
+- `omegaconfg==2.1`: some functions used in this repo are from newer versions
 
 see `conda_dependencies.yml` for other dependencies. 
 
@@ -21,36 +22,57 @@ Parameters for data loaders and models are defined in `OmegaConf` yaml files sto
 
 Trained models are stored in `/experiments`
 
-## Quick Start
+## Quick Start with Pretrained Models
+- Add the package: `export $PYTHONPATH=/path/to/semantic_rearrangement:$PYTHONPATH`
+- Download and unzip pretrained models `/models` from [this link](https://drive.google.com/file/d/1EsptihJv_lPND902P6CYbe00QW-y-rA4/view?usp=sharing).
+- Download and unzip test split of the data `/data_new_objects_test_split` from [this link](https://drive.google.com/file/d/1e76qJbBJ2bKYq0JzDSRWZjswySX1ftq_/view?usp=sharing).
 
-1. Modify `{structure}_dirs.yaml` files (e.g., `circle_dirs.yaml`) in `/semantic_rearrangement/configs` to point to the correct location of data on
-your computer. 
-2. Add the python path: `export $PYTHONPATH=/path/to/semantic_rearrangement:$PYTHONPATH`
-
-### Using pretrained models
-
-Download pretrained models from ...
-
-### Pose Generation Networks
+### Run StructFormer
 ```bash
-python semantic_rearrangement/evaluation/test_{model_name}.py
+cd semantic_rearrangement/demo/
+python run_full_pipeline.py \ 
+  --dataset_base_dir /path/to/data_new_objects_test_split \
+  --pose_generation_model_dir /path/to/models/object_selection_network/best_model \
+  --pose_generation_model_dir /path/to/models/structformer_circle/best_model \
+  --dirs_config ../configs/data/circle_dirs.yaml
 ```
 
-### Object Selection Network
+### Evaluate Pose Generation Networks
 ```bash
-python semantic_rearrangement/evaluation/test_object_selection_network.py
+cd semantic_rearrangement/evaluation/
+python test_{model_name}.py \
+  --dataset_base_dir /path/to/data_new_objects_test_split \
+  --model_dir /path/to/model/best_model \
+  --dirs_config ../configs/data/{structure}_dirs.yaml
+```
+
+### Evaluate Object Selection Network
+```bash
+cd semantic_rearrangement/evaluation/
+python test_object_selection_network.py \
+  --dataset_base_dir /path/to/data_new_objects_test_split \
+  --model_dir /path/to/model/best_model \
+  --dirs_config ../configs/data/{structure}_dirs.yaml
 ```
 
 ## Training
 
+- Download and unzip test split of the data `/data_new_objects` from ...
+
 ### Pose Generation Networks
 ```bash
-# train StructFormer
-python semantic_rearrangement/training/train_{model_name}.py
+cd semantic_rearrangement/training/
+python train_{model_name}.py \
+  --dataset_base_dir /path/to/data_new_objects \
+  --main_config ../configs/{model_name}.yaml \
+  --dirs_config ../configs/data/{structure}_dirs.yaml
 ```
 
 ### Object Selection Network
 ```bash
-python semantic_rearrangement/training/train_object_selection_network.py
+cd semantic_rearrangement/training/
+python train_object_selection_network.py \
+  --dataset_base_dir /path/to/data_new_objects \
+  --main_config ../configs/object_selection_network.yaml \
+  --dirs_config ../configs/data/circle_dirs.yaml
 ```
-

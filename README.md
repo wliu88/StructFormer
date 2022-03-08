@@ -68,19 +68,22 @@ python test_object_selection_network.py \
 - Download and unzip test split of the data `/data_new_objects` from ...
 
 ### Pose Generation Networks
+
+Where `model_name` is one of `structformer_no_encoder`, `structformer_no_structure`, `object_selection_network`, `structformer`, and `structure` is one of `circle`, `line`, `tower`, or `dinner`:
+
 ```bash
-cd structformer/training/
+cd $STRUCTFORMER/src/structformer/training/
 python train_{model_name}.py \
   --dataset_base_dir /path/to/data_new_objects \
-  --main_config ../configs/{model_name}.yaml \
-  --dirs_config ../configs/data/{structure}_dirs.yaml
+  --main_config $STRUCTFORMER/configs/{model_name}.yaml \
+  --dirs_config STRUCTFORMER/configs/data/{structure}_dirs.yaml
 ```
 
 ### Object Selection Network
 ```bash
-cd structformer/training/
+cd src/structformer/training/
 python train_object_selection_network.py \
   --dataset_base_dir /path/to/data_new_objects \
-  --main_config ../configs/object_selection_network.yaml \
-  --dirs_config ../configs/data/circle_dirs.yaml
+  --main_config $STRUCTFORMER/configs/object_selection_network.yaml \
+  --dirs_config $STRUCTFORMER/configs/data/circle_dirs.yaml
 ```

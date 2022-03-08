@@ -1,0 +1,3 @@
+warmup-scheduler>=0.3
+h5py==2.10
+omegaconfg==2.1

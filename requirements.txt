@@ -1,3 +1,8 @@
-warmup-scheduler>=0.3
-h5py==2.10
-omegaconfg==2.1
+warmup-scheduler==0.3
+h5py==2.10.0
+omegaconf==2.1.1
+tqdm==4.63.0
+opencv-python==4.5.5.62
+open3d==0.15.2
+trimesh==3.10.2
+torch # cuda 11 requires a different installation, see https://pytorch.org/get-started/locally/

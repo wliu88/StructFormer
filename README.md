@@ -23,9 +23,10 @@ Parameters for data loaders and models are defined in `OmegaConf` yaml files sto
 Trained models are stored in `/experiments`
 
 ## Quick Start with Pretrained Models
-- Add the package: `export $PYTHONPATH=/path/to/semantic_rearrangement:$PYTHONPATH`
-- Download and unzip pretrained models `/models` from [this link](https://drive.google.com/file/d/1EsptihJv_lPND902P6CYbe00QW-y-rA4/view?usp=sharing).
-- Download and unzip test split of the data `/data_new_objects_test_split` from [this link](https://drive.google.com/file/d/1e76qJbBJ2bKYq0JzDSRWZjswySX1ftq_/view?usp=sharing).
+- Set the package root dir: `export STRUCTFORMER=/path/to/StructFormer`
+- Add the package to python path: `export PYTHONPATH=$STRUCTFORMER:$PYTHONPATH`
+- Download and unzip pretrained models from [this link](https://drive.google.com/file/d/1EsptihJv_lPND902P6CYbe00QW-y-rA4/view?usp=sharing) and unzip to the `$STRUCTFORMER/models` folder
+- Download and unzip test split of the data from [this link](https://drive.google.com/file/d/1e76qJbBJ2bKYq0JzDSRWZjswySX1ftq_/view?usp=sharing) and unzip to the `$STRUCTFORMER/data_new_objects_test_split`
 
 ### Run StructFormer
 ```bash

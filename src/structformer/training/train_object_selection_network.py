@@ -1,29 +1,68 @@
 from __future__ import print_function, division
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-from warmup_scheduler import GradualWarmupScheduler
 import numpy as np
-import torchvision
-from torchvision import datasets, models, transforms
-import matplotlib.pyplot as plt
+from warmup_scheduler import GradualWarmupScheduler
 import time
 import os
-import copy
 import tqdm
 
-import pickle
 import argparse
 from omegaconf import OmegaConf
 from collections import defaultdict
+from sklearn.metrics import classification_report
 
 from torch.utils.data import DataLoader
-from semantic_rearrangement.data.binary_dataset import BinaryDataset
-from semantic_rearrangement.models.pose_generation_network import  PriorContinuousOutBinaryPCT6D
-from semantic_rearrangement.data.tokenizer import Tokenizer
-from semantic_rearrangement.utils.rearrangement import evaluate_prior_prediction
+from structformer.data.object_set_refer_dataset import ObjectSetReferDataset
+from structformer.models.object_selection_network import RearrangeObjectsPredictorPCT
+from structformer.data.tokenizer import Tokenizer
+
+
+def evaluate(gts, predictions, keys, debug=True, return_classification_dict=False):
+    """
+    :param gts: expect a list of tensors
+    :param predictions: expect a list of tensor
+    :return:
+    """
+
+    total_scores = 0
+    for key in keys:
+        predictions_for_key = torch.cat(predictions[key], dim=0)
+        gts_for_key = torch.cat(gts[key], dim=0)
+
+        predicted_classes = predictions_for_key > 0.5
+        assert len(gts_for_key) == len(predicted_classes)
+
+        target_indices = gts_for_key != -100
+
+        gts_for_key = gts_for_key[target_indices]
+        predicted_classes = predicted_classes[target_indices]
+        num_objects = len(predicted_classes)
+
+        if debug:
+            print(num_objects)
+            print(gts_for_key.shape)
+            print(predicted_classes.shape)
+            print(target_indices.shape)
+            print("Groundtruths:")
+            print(gts_for_key[:100])
+            print("Predictions")
+            print(predicted_classes[:100])
+
+        accuracy = torch.sum(gts_for_key == predicted_classes) / len(gts_for_key)
+        print("{} objects -- {} accuracy: {}".format(num_objects, key, accuracy))
+        total_scores += accuracy
+
+        report = classification_report(gts_for_key.detach().cpu().numpy(), predicted_classes.detach().cpu().numpy(),
+                                       output_dict=True)
+        print(report)
+
+    if not return_classification_dict:
+        return total_scores
+    else:
+        return report
 
 
 def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, save_best_model, grad_clipping=1.0):
@@ -33,7 +72,7 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
         print("best model will be saved to {}".format(best_model_dir))
         if not os.path.exists(best_model_dir):
             os.makedirs(best_model_dir)
-        best_score = -np.inf
+        best_score = 0.0
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -47,27 +86,24 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
         with tqdm.tqdm(total=len(data_iter["train"])) as pbar:
             for step, batch in enumerate(data_iter["train"]):
                 optimizer.zero_grad()
+
                 # input
-                query_xyz = batch["query_xyz"].to(device, non_blocking=True)
-                query_rgb = batch["query_rgb"].to(device, non_blocking=True)
-                anchor_xyz = batch["anchor_xyz"].to(device, non_blocking=True)
-                anchor_rgb = batch["anchor_rgb"].to(device, non_blocking=True)
-                bg_xyz = batch["bg_xyz"].to(device, non_blocking=True)
-                bg_rgb = batch["bg_rgb"].to(device, non_blocking=True)
+                xyzs = batch["xyzs"].to(device, non_blocking=True)
+                rgbs = batch["rgbs"].to(device, non_blocking=True)
                 sentence = batch["sentence"].to(device, non_blocking=True)
+                object_pad_mask = batch["object_pad_mask"].to(device, non_blocking=True)
+                sentence_pad_mask = batch["sentence_pad_mask"].to(device, non_blocking=True)
+                token_type_index = batch["token_type_index"].to(device, non_blocking=True)
                 position_index = batch["position_index"].to(device, non_blocking=True)
-                pad_mask = batch["pad_mask"].to(device, non_blocking=True)
 
                 # output
                 targets = {}
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
+                for key in ["rearrange_obj_labels"]:
                     targets[key] = batch[key].to(device, non_blocking=True)
-                    targets[key] = targets[key].reshape(targets[key].shape[0] * targets[key].shape[1], -1)
 
-                preds = model.forward(query_xyz, query_rgb, anchor_xyz, anchor_rgb, bg_xyz, bg_rgb,
-                                      sentence, pad_mask, position_index)
-
+                preds = model.forward(xyzs, rgbs, object_pad_mask, sentence, sentence_pad_mask, token_type_index, position_index)
                 loss = model.criterion(preds, targets)
+
                 loss.backward()
 
                 if grad_clipping != 0.0:
@@ -76,7 +112,7 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
                 optimizer.step()
                 epoch_loss += loss
 
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
+                for key in ["rearrange_obj_labels"]:
                     gts[key].append(targets[key].detach())
                     predictions[key].append(preds[key].detach())
 
@@ -86,9 +122,9 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
         warmup.step()
 
         print('[Epoch:{}]:  Training Loss:{:.4}'.format(epoch, epoch_loss))
-        evaluate_prior_prediction(gts, predictions, ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"])
+        evaluate(gts, predictions, ["rearrange_obj_labels"])
 
-        score = validate(cfg, model, data_iter["valid"], epoch, device)
+        score = validate(model, data_iter["valid"], epoch, device)
         if save_best_model and score > best_score:
             print("Saving best model so far...")
             best_score = score
@@ -97,7 +133,7 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
     return model
 
 
-def validate(cfg, model, data_iter, epoch, device):
+def validate(model, data_iter, epoch, device):
     """
     helper function to evaluate the model
 
@@ -119,28 +155,24 @@ def validate(cfg, model, data_iter, epoch, device):
             for step, batch in enumerate(data_iter):
 
                 # input
-                query_xyz = batch["query_xyz"].to(device, non_blocking=True)
-                query_rgb = batch["query_rgb"].to(device, non_blocking=True)
-                anchor_xyz = batch["anchor_xyz"].to(device, non_blocking=True)
-                anchor_rgb = batch["anchor_rgb"].to(device, non_blocking=True)
-                bg_xyz = batch["bg_xyz"].to(device, non_blocking=True)
-                bg_rgb = batch["bg_rgb"].to(device, non_blocking=True)
+                xyzs = batch["xyzs"].to(device, non_blocking=True)
+                rgbs = batch["rgbs"].to(device, non_blocking=True)
                 sentence = batch["sentence"].to(device, non_blocking=True)
+                object_pad_mask = batch["object_pad_mask"].to(device, non_blocking=True)
+                sentence_pad_mask = batch["sentence_pad_mask"].to(device, non_blocking=True)
+                token_type_index = batch["token_type_index"].to(device, non_blocking=True)
                 position_index = batch["position_index"].to(device, non_blocking=True)
-                pad_mask = batch["pad_mask"].to(device, non_blocking=True)
 
                 # output
                 targets = {}
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
+                for key in ["rearrange_obj_labels"]:
                     targets[key] = batch[key].to(device, non_blocking=True)
-                    targets[key] = targets[key].reshape(targets[key].shape[0] * targets[key].shape[1], -1)
 
-                preds = model.forward(query_xyz, query_rgb, anchor_xyz, anchor_rgb, bg_xyz, bg_rgb,
-                                      sentence, pad_mask, position_index)
-
+                preds = model.forward(xyzs, rgbs, object_pad_mask, sentence, sentence_pad_mask, token_type_index,
+                                      position_index)
                 loss = model.criterion(preds, targets)
 
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
+                for key in ["rearrange_obj_labels"]:
                     gts[key].append(targets[key])
                     predictions[key].append(preds[key])
 
@@ -150,41 +182,49 @@ def validate(cfg, model, data_iter, epoch, device):
 
     print('[Epoch:{}]:  Val Loss:{:.4}'.format(epoch, epoch_loss))
 
-    score = evaluate_prior_prediction(gts, predictions, ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"])
+    score = evaluate(gts, predictions, ["rearrange_obj_labels"])
     return score
 
 
-def infer_once(cfg, model, batch, device):
+def infer_once(model, batch, device):
+    """
+    helper function to evaluate the model
+
+    :param model:
+    :param data_iter:
+    :param epoch:
+    :param device:
+    :return:
+    """
 
     model.eval()
 
+    gts = defaultdict(list)
     predictions = defaultdict(list)
     with torch.no_grad():
 
         # input
-        query_xyz = batch["query_xyz"].to(device, non_blocking=True)
-        query_rgb = batch["query_rgb"].to(device, non_blocking=True)
-        anchor_xyz = batch["anchor_xyz"].to(device, non_blocking=True)
-        anchor_rgb = batch["anchor_rgb"].to(device, non_blocking=True)
-        bg_xyz = batch["bg_xyz"].to(device, non_blocking=True)
-        bg_rgb = batch["bg_rgb"].to(device, non_blocking=True)
+        xyzs = batch["xyzs"].to(device, non_blocking=True)
+        rgbs = batch["rgbs"].to(device, non_blocking=True)
         sentence = batch["sentence"].to(device, non_blocking=True)
+        object_pad_mask = batch["object_pad_mask"].to(device, non_blocking=True)
+        sentence_pad_mask = batch["sentence_pad_mask"].to(device, non_blocking=True)
+        token_type_index = batch["token_type_index"].to(device, non_blocking=True)
         position_index = batch["position_index"].to(device, non_blocking=True)
-        pad_mask = batch["pad_mask"].to(device, non_blocking=True)
 
         # output
         targets = {}
-        for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
+        for key in ["rearrange_obj_labels"]:
             targets[key] = batch[key].to(device, non_blocking=True)
-            targets[key] = targets[key].reshape(targets[key].shape[0] * targets[key].shape[1], -1)
 
-        preds = model.forward(query_xyz, query_rgb, anchor_xyz, anchor_rgb, bg_xyz, bg_rgb,
-                              sentence, pad_mask, position_index)
+        preds = model.forward(xyzs, rgbs, object_pad_mask, sentence, sentence_pad_mask, token_type_index,
+                              position_index)
 
-        for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
+        for key in ["rearrange_obj_labels"]:
+            gts[key].append(targets[key])
             predictions[key].append(preds[key])
 
-    return predictions
+    return gts, predictions
 
 
 def save_model(model_dir, cfg, epoch, model, optimizer=None, scheduler=None):
@@ -216,15 +256,14 @@ def load_model(model_dir, dirs_cfg):
 
     # initialize model
     model_cfg = cfg.model
-    model = PriorContinuousOutBinaryPCT6D(vocab_size,
-                                          num_attention_heads=model_cfg.num_attention_heads,
-                                          encoder_hidden_dim=model_cfg.encoder_hidden_dim,
-                                          encoder_dropout=model_cfg.encoder_dropout,
-                                          encoder_activation=model_cfg.encoder_activation,
-                                          encoder_num_layers=model_cfg.encoder_num_layers,
-                                          object_dropout=model_cfg.object_dropout,
-                                          theta_loss_divide=model_cfg.theta_loss_divide,
-                                          ignore_rgb=model_cfg.ignore_rgb)
+    model = RearrangeObjectsPredictorPCT(vocab_size,
+                                         num_attention_heads=model_cfg.num_attention_heads,
+                                         encoder_hidden_dim=model_cfg.encoder_hidden_dim,
+                                         encoder_dropout=model_cfg.encoder_dropout,
+                                         encoder_activation=model_cfg.encoder_activation,
+                                         encoder_num_layers=model_cfg.encoder_num_layers,
+                                         use_focal_loss=model_cfg.use_focal_loss,
+                                         focal_loss_gamma=model_cfg.focal_loss_gamma)
     model.to(cfg.device)
 
     # load state dicts
@@ -260,40 +299,40 @@ def run_model(cfg):
     tokenizer = Tokenizer(data_cfg.vocab_dir)
     vocab_size = tokenizer.get_vocab_size()
 
-    train_dataset = BinaryDataset(data_cfg.dirs, data_cfg.index_dirs, "train", tokenizer,
-                                  data_cfg.max_num_objects,
-                                  data_cfg.max_num_other_objects,
-                                  data_cfg.max_num_shape_parameters,
-                                  data_cfg.max_num_rearrange_features,
-                                  data_cfg.max_num_anchor_features,
-                                  data_cfg.num_pts)
-    valid_dataset = BinaryDataset(data_cfg.dirs, data_cfg.index_dirs, "valid", tokenizer,
-                                  data_cfg.max_num_objects,
-                                  data_cfg.max_num_other_objects,
-                                  data_cfg.max_num_shape_parameters,
-                                  data_cfg.max_num_rearrange_features,
-                                  data_cfg.max_num_anchor_features,
-                                  data_cfg.num_pts)
+    train_dataset = ObjectSetReferDataset(data_cfg.dirs, data_cfg.index_dirs, "train", tokenizer,
+                                          data_cfg.max_num_all_objects,
+                                          data_cfg.max_num_shape_parameters,
+                                          data_cfg.max_num_rearrange_features,
+                                          data_cfg.max_num_anchor_features,
+                                          data_cfg.num_pts)
+
+    valid_dataset = ObjectSetReferDataset(data_cfg.dirs, data_cfg.index_dirs, "valid", tokenizer,
+                                          data_cfg.max_num_all_objects,
+                                          data_cfg.max_num_shape_parameters,
+                                          data_cfg.max_num_rearrange_features,
+                                          data_cfg.max_num_anchor_features,
+                                          data_cfg.num_pts)
 
     data_iter = {}
     data_iter["train"] = DataLoader(train_dataset, batch_size=data_cfg.batch_size, shuffle=True,
-                                    collate_fn=BinaryDataset.collate_fn,
-                                    pin_memory=data_cfg.pin_memory, num_workers=data_cfg.num_workers)
+                                    num_workers=data_cfg.num_workers,
+                                    collate_fn=ObjectSetReferDataset.collate_fn,
+                                    pin_memory=data_cfg.pin_memory)
     data_iter["valid"] = DataLoader(valid_dataset, batch_size=data_cfg.batch_size, shuffle=False,
-                                    collate_fn=BinaryDataset.collate_fn,
-                                    pin_memory=data_cfg.pin_memory, num_workers=data_cfg.num_workers)
+                                    num_workers=data_cfg.num_workers,
+                                    collate_fn=ObjectSetReferDataset.collate_fn,
+                                    pin_memory=data_cfg.pin_memory)
 
     # load model
     model_cfg = cfg.model
-    model = PriorContinuousOutBinaryPCT6D(vocab_size,
-                                          num_attention_heads=model_cfg.num_attention_heads,
-                                          encoder_hidden_dim=model_cfg.encoder_hidden_dim,
-                                          encoder_dropout=model_cfg.encoder_dropout,
-                                          encoder_activation=model_cfg.encoder_activation,
-                                          encoder_num_layers=model_cfg.encoder_num_layers,
-                                          object_dropout=model_cfg.object_dropout,
-                                          theta_loss_divide=model_cfg.theta_loss_divide,
-                                          ignore_rgb=model_cfg.ignore_rgb)
+    model = RearrangeObjectsPredictorPCT(vocab_size,
+                                         num_attention_heads=model_cfg.num_attention_heads,
+                                         encoder_hidden_dim=model_cfg.encoder_hidden_dim,
+                                         encoder_dropout=model_cfg.encoder_dropout,
+                                         encoder_activation=model_cfg.encoder_activation,
+                                         encoder_num_layers=model_cfg.encoder_num_layers,
+                                         use_focal_loss=model_cfg.use_focal_loss,
+                                         focal_loss_gamma=model_cfg.focal_loss_gamma)
     model.to(cfg.device)
 
     training_cfg = cfg.training
@@ -318,7 +357,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a simple model")
     parser.add_argument("--dataset_base_dir", help='location of the dataset', type=str)
     parser.add_argument("--main_config", help='config yaml file for the model',
-                        default='../configs/binary_model.yaml',
+                        default='../configs/object_selection_network.yaml',
                         type=str)
     parser.add_argument("--dirs_config", help='config yaml file for directories',
                         default='../configs/data/circle_dirs.yaml',

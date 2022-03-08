@@ -8,25 +8,25 @@ import argparse
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 
-from semantic_rearrangement.data.tokenizer import Tokenizer
-from semantic_rearrangement.evaluation.test_object_selection_network import ObjectSelectionInference
-from semantic_rearrangement.evaluation.test_structformer import PriorInference
+from structformer.data.tokenizer import Tokenizer
+from structformer.evaluation.test_object_selection_network import ObjectSelectionInference
+from structformer.evaluation.test_structformer import PriorInference
 
 
 
-import semantic_rearrangement.data.sequence_dataset as generation_dataset
-import semantic_rearrangement.training.train_structformer as generation_model
+import structformer.data.sequence_dataset as generation_dataset
+import structformer.training.train_structformer as generation_model
 
-from semantic_rearrangement.data.object_set_refer_dataset import ObjectSetReferDataset
-from semantic_rearrangement.training.train_object_selection_network import load_model, validate, infer_once
-from semantic_rearrangement.utils.rearrangement import show_pcs_with_predictions, get_initial_scene_idxs, evaluate_target_object_predictions, save_img, show_pcs_with_labels, test_new_vis
+from structformer.data.object_set_refer_dataset import ObjectSetReferDataset
+from structformer.training.train_object_selection_network import load_model, validate, infer_once
+from structformer.utils.rearrangement import show_pcs_with_predictions, get_initial_scene_idxs, evaluate_target_object_predictions, save_img, show_pcs_with_labels, test_new_vis
 
 
-from semantic_rearrangement.data.tokenizer import Tokenizer
-import semantic_rearrangement.data.sequence_dataset as prior_dataset
-import semantic_rearrangement.training.train_structformer as prior_model
-from semantic_rearrangement.utils.rearrangement import show_pcs
-from semantic_rearrangement.evaluation.inference import PointCloudRearrangement
+from structformer.data.tokenizer import Tokenizer
+import structformer.data.sequence_dataset as prior_dataset
+import structformer.training.train_structformer as prior_model
+from structformer.utils.rearrangement import show_pcs
+from structformer.evaluation.inference import PointCloudRearrangement
 
 
 def run_demo(object_selection_model_dir, pose_generation_model_dir, dirs_config, beam_size=3):
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects_test_split"
     # args.object_selection_model_dir = "/home/weiyu/Research/intern/StructFormer/models/object_selection_network/best_model"
     # args.pose_generation_model_dir = "/home/weiyu/Research/intern/StructFormer/models/structformer_circle/best_model"
-    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/semantic_rearrangement/configs/data/circle_dirs.yaml"
+    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/structformer/configs/data/circle_dirs.yaml"
 
     if args.dirs_config:
         assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dirs_config)

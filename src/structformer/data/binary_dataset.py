@@ -15,13 +15,13 @@ import random
 # import brain2.utils.transformations as tra
 # import brain2.utils.camera as cam
 
-import semantic_rearrangement.utils.brain2.camera as cam
-import semantic_rearrangement.utils.brain2.image as img
+import structformer.utils.brain2.camera as cam
+import structformer.utils.brain2.image as img
 
-from semantic_rearrangement.data.tokenizer import Tokenizer
-from semantic_rearrangement.utils.rotation_continuity import compute_geodesic_distance_from_two_matrices
-from semantic_rearrangement.utils.rearrangement import show_pcs, get_pts, combine_and_sample_xyzs
-import semantic_rearrangement.utils.transformations as tra
+from structformer.data.tokenizer import Tokenizer
+from structformer.utils.rotation_continuity import compute_geodesic_distance_from_two_matrices
+from structformer.utils.rearrangement import show_pcs, get_pts, combine_and_sample_xyzs
+import structformer.utils.transformations as tra
 
 
 class BinaryDataset(torch.utils.data.Dataset):

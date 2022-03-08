@@ -10,8 +10,8 @@ from torch.distributions import Normal, Categorical
 from collections import defaultdict
 from torch.nn import TransformerEncoder, TransformerEncoderLayer, Transformer
 
-from semantic_rearrangement.models.point_transformer import PointTransformerEncoderSmall
-from semantic_rearrangement.utils.rotation_continuity import compute_rotation_matrix_from_ortho6d
+from structformer.models.point_transformer import PointTransformerEncoderSmall
+from structformer.utils.rotation_continuity import compute_rotation_matrix_from_ortho6d
 
 
 """

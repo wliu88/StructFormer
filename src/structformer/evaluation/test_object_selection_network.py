@@ -7,9 +7,9 @@ import argparse
 from omegaconf import OmegaConf
 
 from torch.utils.data import DataLoader
-from semantic_rearrangement.data.object_set_refer_dataset import ObjectSetReferDataset
-from semantic_rearrangement.training.train_object_selection_network import load_model, validate, infer_once
-from semantic_rearrangement.utils.rearrangement import show_pcs_with_predictions, get_initial_scene_idxs, evaluate_target_object_predictions, save_img, show_pcs_with_labels, test_new_vis
+from structformer.data.object_set_refer_dataset import ObjectSetReferDataset
+from structformer.training.train_object_selection_network import load_model, validate, infer_once
+from structformer.utils.rearrangement import show_pcs_with_predictions, get_initial_scene_idxs, evaluate_target_object_predictions, save_img, show_pcs_with_labels, test_new_vis
 
 
 class ObjectSelectionInference:
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     # # debug only
     # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects_test_split"
     # args.model_dir = "/home/weiyu/Research/intern/StructFormer/models/object_selection_network/best_model"
-    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/semantic_rearrangement/configs/data/line_dirs.yaml"
+    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/structformer/configs/data/line_dirs.yaml"
     # args.visualize = True
 
     if args.dirs_config:

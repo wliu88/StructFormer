@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import copy
 
-import semantic_rearrangement.utils.transformations as tra
-from semantic_rearrangement.utils.rearrangement import show_pcs, save_pcs, move_one_object_pc, make_gifs, modify_language, sample_gaussians, fit_gaussians, show_pcs_color_order
+import structformer.utils.transformations as tra
+from structformer.utils.rearrangement import show_pcs, save_pcs, move_one_object_pc, make_gifs, modify_language, sample_gaussians, fit_gaussians, show_pcs_color_order
 
 
 class PointCloudRearrangement:

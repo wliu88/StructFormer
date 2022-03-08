@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import itertools
 import matplotlib
 
-import semantic_rearrangement.utils.transformations as tra
-from semantic_rearrangement.utils.rotation_continuity import compute_geodesic_distance_from_two_matrices
+import structformer.utils.transformations as tra
+from structformer.utils.rotation_continuity import compute_geodesic_distance_from_two_matrices
 
 # from pointnet_utils import farthest_point_sample, index_points
 

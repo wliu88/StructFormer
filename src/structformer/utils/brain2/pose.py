@@ -9,7 +9,7 @@
 
 from __future__ import print_function
 
-import semantic_rearrangement.utils.transformations as tra
+import structformer.utils.transformations as tra
 
 
 def make_pose(trans, rot):

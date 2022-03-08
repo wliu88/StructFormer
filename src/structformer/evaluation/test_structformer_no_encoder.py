@@ -8,11 +8,11 @@ from omegaconf import OmegaConf
 import time
 from torch.utils.data import DataLoader
 
-from semantic_rearrangement.data.tokenizer import Tokenizer
-import semantic_rearrangement.data.sequence_dataset as prior_dataset
-import semantic_rearrangement.training.train_structformer_no_encoder as prior_model
-from semantic_rearrangement.utils.rearrangement import show_pcs
-from semantic_rearrangement.evaluation.inference import PointCloudRearrangement
+from structformer.data.tokenizer import Tokenizer
+import structformer.data.sequence_dataset as prior_dataset
+import structformer.training.train_structformer_no_encoder as prior_model
+from structformer.utils.rearrangement import show_pcs
+from structformer.evaluation.inference import PointCloudRearrangement
 
 
 def test_model(model_dir, dirs_cfg):
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     # # debug only
     # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects_test_split"
     # args.model_dir = "/home/weiyu/Research/intern/StructFormer/models/structformer_no_encoder_tower/best_model"
-    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/semantic_rearrangement/configs/data/tower_dirs.yaml"
+    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/structformer/configs/data/tower_dirs.yaml"
 
     if args.dirs_config:
         assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dirs_config)

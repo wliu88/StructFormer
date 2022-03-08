@@ -9,10 +9,10 @@ import trimesh
 import time
 from torch.utils.data import DataLoader
 
-from semantic_rearrangement.data.tokenizer import Tokenizer
-import semantic_rearrangement.data.binary_dataset as prior_dataset
-import semantic_rearrangement.training.train_binary_model as prior_model
-from semantic_rearrangement.utils.rearrangement import move_one_object_pc, make_gifs, \
+from structformer.data.tokenizer import Tokenizer
+import structformer.data.binary_dataset as prior_dataset
+import structformer.training.train_binary_model as prior_model
+from structformer.utils.rearrangement import move_one_object_pc, make_gifs, \
     modify_language, sample_gaussians, fit_gaussians, get_initial_scene_idxs, show_pcs, save_pcs
 
 
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     # # debug only
     # args.dataset_base_dir = "/home/weiyu/data_drive/data_new_objects_test_split"
     # args.model_dir = "/home/weiyu/Research/intern/StructFormer/models/binary_model_tower/best_model"
-    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/semantic_rearrangement/configs/data/tower_dirs.yaml"
+    # args.dirs_config = "/home/weiyu/Research/intern/StructFormer/structformer/configs/data/tower_dirs.yaml"
 
     if args.dirs_config:
         assert os.path.exists(args.dirs_config), "Cannot find config yaml file at {}".format(args.dirs_config)

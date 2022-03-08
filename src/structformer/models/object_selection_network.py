@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-from semantic_rearrangement.models.point_transformer import PointTransformerEncoderSmall
+from structformer.models.point_transformer import PointTransformerEncoderSmall
 
 
 class FocalLoss(nn.Module):

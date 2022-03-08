@@ -13,8 +13,8 @@ import numpy as np
 import open3d
 import trimesh
 
-import semantic_rearrangement.utils.transformations as tra
-from semantic_rearrangement.utils.brain2.pose import make_pose
+import structformer.utils.transformations as tra
+from structformer.utils.brain2.pose import make_pose
 
 
 def get_camera_from_h5(h5):

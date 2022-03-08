@@ -20,10 +20,10 @@ from omegaconf import OmegaConf
 from collections import defaultdict
 
 from torch.utils.data import DataLoader
-from semantic_rearrangement.data.sequence_dataset import SequenceDataset
-from semantic_rearrangement.models.pose_generation_network import PriorContinuousOutEncoderDecoderStructPCT6DDropoutAllObjects
-from semantic_rearrangement.data.tokenizer import Tokenizer
-from semantic_rearrangement.utils.rearrangement import evaluate_prior_prediction, generate_square_subsequent_mask
+from structformer.data.sequence_dataset import SequenceDataset
+from structformer.models.pose_generation_network import PriorContinuousOutEncoderDecoderPCT6DDropoutAllObjects
+from structformer.data.tokenizer import Tokenizer
+from structformer.utils.rearrangement import evaluate_prior_prediction, generate_square_subsequent_mask
 
 
 def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, save_best_model, grad_clipping=1.0):
@@ -63,30 +63,19 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
                 obj_z_inputs = batch["obj_z_inputs"].to(device, non_blocking=True)
                 obj_theta_inputs = batch["obj_theta_inputs"].to(device, non_blocking=True)
 
-                struct_x_inputs = batch["struct_x_inputs"].to(device, non_blocking=True)
-                struct_y_inputs = batch["struct_y_inputs"].to(device, non_blocking=True)
-                struct_z_inputs = batch["struct_z_inputs"].to(device, non_blocking=True)
-                struct_theta_inputs = batch["struct_theta_inputs"].to(device, non_blocking=True)
-                struct_position_index = batch["struct_position_index"].to(device, non_blocking=True)
-                struct_token_type_index = batch["struct_token_type_index"].to(device, non_blocking=True)
-                struct_pad_mask = batch["struct_pad_mask"].to(device, non_blocking=True)
-
-                tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1] + 1).to(device, non_blocking=True)
+                tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1]).to(device, non_blocking=True)
                 start_token = torch.zeros((object_pad_mask.shape[0], 1), dtype=torch.long).to(device, non_blocking=True)
 
                 # output
                 targets = {}
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                            "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"]:
+                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
                     targets[key] = batch[key].to(device, non_blocking=True)
                     targets[key] = targets[key].reshape(targets[key].shape[0] * targets[key].shape[1], -1)
 
                 preds = model.forward(xyzs, rgbs, object_pad_mask, other_xyzs, other_rgbs, other_object_pad_mask,
                                       sentence, sentence_pad_mask, token_type_index,
                                       obj_x_inputs, obj_y_inputs, obj_z_inputs, obj_theta_inputs, position_index,
-                                      tgt_mask, start_token,
-                                      struct_x_inputs, struct_y_inputs, struct_z_inputs, struct_theta_inputs,
-                                      struct_position_index, struct_token_type_index, struct_pad_mask)
+                                      tgt_mask, start_token)
 
                 loss = model.criterion(preds, targets)
                 loss.backward()
@@ -97,8 +86,7 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
                 optimizer.step()
                 epoch_loss += loss
 
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                            "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"]:
+                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
                     gts[key].append(targets[key].detach())
                     predictions[key].append(preds[key].detach())
 
@@ -108,8 +96,7 @@ def train_model(cfg, model, data_iter, optimizer, warmup, num_epochs, device, sa
         warmup.step()
 
         print('[Epoch:{}]:  Training Loss:{:.4}'.format(epoch, epoch_loss))
-        evaluate_prior_prediction(gts, predictions, ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                                    "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"])
+        evaluate_prior_prediction(gts, predictions, ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"])
 
         score = validate(cfg, model, data_iter["valid"], epoch, device)
         if save_best_model and score > best_score:
@@ -157,34 +144,22 @@ def validate(cfg, model, data_iter, epoch, device):
                 obj_z_inputs = batch["obj_z_inputs"].to(device, non_blocking=True)
                 obj_theta_inputs = batch["obj_theta_inputs"].to(device, non_blocking=True)
 
-                struct_x_inputs = batch["struct_x_inputs"].to(device, non_blocking=True)
-                struct_y_inputs = batch["struct_y_inputs"].to(device, non_blocking=True)
-                struct_z_inputs = batch["struct_z_inputs"].to(device, non_blocking=True)
-                struct_theta_inputs = batch["struct_theta_inputs"].to(device, non_blocking=True)
-                struct_position_index = batch["struct_position_index"].to(device, non_blocking=True)
-                struct_token_type_index = batch["struct_token_type_index"].to(device, non_blocking=True)
-                struct_pad_mask = batch["struct_pad_mask"].to(device, non_blocking=True)
-
-                tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1] + 1).to(device, non_blocking=True)
+                tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1]).to(device, non_blocking=True)
                 start_token = torch.zeros((object_pad_mask.shape[0], 1), dtype=torch.long).to(device, non_blocking=True)
 
                 # output
                 targets = {}
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                            "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"]:
+                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
                     targets[key] = batch[key].to(device, non_blocking=True)
                     targets[key] = targets[key].reshape(targets[key].shape[0] * targets[key].shape[1], -1)
 
                 preds = model.forward(xyzs, rgbs, object_pad_mask, other_xyzs, other_rgbs, other_object_pad_mask,
                                       sentence, sentence_pad_mask, token_type_index,
                                       obj_x_inputs, obj_y_inputs, obj_z_inputs, obj_theta_inputs, position_index,
-                                      tgt_mask, start_token,
-                                      struct_x_inputs, struct_y_inputs, struct_z_inputs, struct_theta_inputs,
-                                      struct_position_index, struct_token_type_index, struct_pad_mask)
+                                      tgt_mask, start_token)
                 loss = model.criterion(preds, targets)
 
-                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                            "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"]:
+                for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
                     gts[key].append(targets[key])
                     predictions[key].append(preds[key])
 
@@ -195,8 +170,7 @@ def validate(cfg, model, data_iter, epoch, device):
     print('[Epoch:{}]:  Val Loss:{:.4}'.format(epoch, epoch_loss))
 
     score = evaluate_prior_prediction(gts, predictions,
-                     ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                      "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"])
+                     ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"])
     return score
 
 
@@ -219,32 +193,20 @@ def infer_once(cfg, model, batch, device):
         token_type_index = batch["token_type_index"].to(device, non_blocking=True)
         position_index = batch["position_index"].to(device, non_blocking=True)
 
-        struct_position_index = batch["struct_position_index"].to(device, non_blocking=True)
-        struct_token_type_index = batch["struct_token_type_index"].to(device, non_blocking=True)
-        struct_pad_mask = batch["struct_pad_mask"].to(device, non_blocking=True)
-
         obj_x_inputs = batch["obj_x_inputs"].to(device, non_blocking=True)
         obj_y_inputs = batch["obj_y_inputs"].to(device, non_blocking=True)
         obj_z_inputs = batch["obj_z_inputs"].to(device, non_blocking=True)
         obj_theta_inputs = batch["obj_theta_inputs"].to(device, non_blocking=True)
 
-        struct_x_inputs = batch["struct_x_inputs"].to(device, non_blocking=True)
-        struct_y_inputs = batch["struct_y_inputs"].to(device, non_blocking=True)
-        struct_z_inputs = batch["struct_z_inputs"].to(device, non_blocking=True)
-        struct_theta_inputs = batch["struct_theta_inputs"].to(device, non_blocking=True)
-
-        tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1] + 1).to(device, non_blocking=True)
+        tgt_mask = generate_square_subsequent_mask(object_pad_mask.shape[1]).to(device, non_blocking=True)
         start_token = torch.zeros((object_pad_mask.shape[0], 1), dtype=torch.long).to(device, non_blocking=True)
 
         preds = model.forward(xyzs, rgbs, object_pad_mask, other_xyzs, other_rgbs, other_object_pad_mask,
                               sentence, sentence_pad_mask, token_type_index,
                               obj_x_inputs, obj_y_inputs, obj_z_inputs, obj_theta_inputs, position_index,
-                              tgt_mask, start_token,
-                              struct_x_inputs, struct_y_inputs, struct_z_inputs, struct_theta_inputs,
-                              struct_position_index, struct_token_type_index, struct_pad_mask)
+                              tgt_mask, start_token)
 
-        for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs",
-                    "struct_x_inputs", "struct_y_inputs", "struct_z_inputs", "struct_theta_inputs"]:
+        for key in ["obj_x_outputs", "obj_y_outputs", "obj_z_outputs", "obj_theta_outputs"]:
             predictions[key].append(preds[key])
 
     return predictions
@@ -279,16 +241,15 @@ def load_model(model_dir, dirs_cfg):
 
     # initialize model
     model_cfg = cfg.model
-    model = PriorContinuousOutEncoderDecoderStructPCT6DDropoutAllObjects(vocab_size,
-                                                                         num_attention_heads=model_cfg.num_attention_heads,
-                                                                         encoder_hidden_dim=model_cfg.encoder_hidden_dim,
-                                                                         encoder_dropout=model_cfg.encoder_dropout,
-                                                                         encoder_activation=model_cfg.encoder_activation,
-                                                                         encoder_num_layers=model_cfg.encoder_num_layers,
-                                                                         structure_dropout=model_cfg.structure_dropout,
-                                                                         object_dropout=model_cfg.object_dropout,
-                                                                         theta_loss_divide=model_cfg.theta_loss_divide,
-                                                                         ignore_rgb=model_cfg.ignore_rgb)
+    model = PriorContinuousOutEncoderDecoderPCT6DDropoutAllObjects(vocab_size,
+                                                                   num_attention_heads=model_cfg.num_attention_heads,
+                                                                   encoder_hidden_dim=model_cfg.encoder_hidden_dim,
+                                                                   encoder_dropout=model_cfg.encoder_dropout,
+                                                                   encoder_activation=model_cfg.encoder_activation,
+                                                                   encoder_num_layers=model_cfg.encoder_num_layers,
+                                                                   object_dropout=model_cfg.object_dropout,
+                                                                   theta_loss_divide=model_cfg.theta_loss_divide,
+                                                                   ignore_rgb=model_cfg.ignore_rgb)
     model.to(cfg.device)
 
     # load state dicts
@@ -351,16 +312,15 @@ def run_model(cfg):
 
     # load model
     model_cfg = cfg.model
-    model = PriorContinuousOutEncoderDecoderStructPCT6DDropoutAllObjects(vocab_size,
-                                                                         num_attention_heads=model_cfg.num_attention_heads,
-                                                                         encoder_hidden_dim=model_cfg.encoder_hidden_dim,
-                                                                         encoder_dropout=model_cfg.encoder_dropout,
-                                                                         encoder_activation=model_cfg.encoder_activation,
-                                                                         encoder_num_layers=model_cfg.encoder_num_layers,
-                                                                         structure_dropout=model_cfg.structure_dropout,
-                                                                         object_dropout=model_cfg.object_dropout,
-                                                                         theta_loss_divide=model_cfg.theta_loss_divide,
-                                                                         ignore_rgb=model_cfg.ignore_rgb)
+    model = PriorContinuousOutEncoderDecoderPCT6DDropoutAllObjects(vocab_size,
+                                                                   num_attention_heads=model_cfg.num_attention_heads,
+                                                                   encoder_hidden_dim=model_cfg.encoder_hidden_dim,
+                                                                   encoder_dropout=model_cfg.encoder_dropout,
+                                                                   encoder_activation=model_cfg.encoder_activation,
+                                                                   encoder_num_layers=model_cfg.encoder_num_layers,
+                                                                   object_dropout=model_cfg.object_dropout,
+                                                                   theta_loss_divide=model_cfg.theta_loss_divide,
+                                                                   ignore_rgb=model_cfg.ignore_rgb)
     model.to(cfg.device)
 
     training_cfg = cfg.training
@@ -385,7 +345,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a simple model")
     parser.add_argument("--dataset_base_dir", help='location of the dataset', type=str)
     parser.add_argument("--main_config", help='config yaml file for the model',
-                        default='../configs/structformer.yaml',
+                        default='../configs/structformer_no_structure.yaml',
                         type=str)
     parser.add_argument("--dirs_config", help='config yaml file for directories',
                         default='../configs/data/circle_dirs.yaml',

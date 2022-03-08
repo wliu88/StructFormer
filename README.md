@@ -2,17 +2,24 @@
 
 This repo contains pytorch code for semantic rearrangement.
 
-## Dependencies
+## Installation
+
+```
+pip install -r requirements.txt
+pip install -e .
+```
+
+### Notes on Dependencies
 - `h5py==2.10`: this specific version is needed.
 - `omegaconfg==2.1`: some functions used in this repo are from newer versions
 
 see `conda_dependencies.yml` for other dependencies. 
 
-## Environments
+### Environments
 The code has been tested on ubuntu 18.04 with nvidia driver 460.91, cuda 11.0, python 3.6, and pytorch 1.7.
 
 ## Organization
-Source code in `/semantic_rearrangement` are mainly organized as:
+Source code in the StructFormer package is mainly organized as:
 - data loaders `data`
 - models `models`
 - training scripts `training`
@@ -30,26 +37,26 @@ Trained models are stored in `/experiments`
 
 ### Run StructFormer
 ```bash
-cd semantic_rearrangement/demo/
-python run_full_pipeline.py \ 
-  --dataset_base_dir /path/to/data_new_objects_test_split \
-  --pose_generation_model_dir /path/to/models/object_selection_network/best_model \
-  --pose_generation_model_dir /path/to/models/structformer_circle/best_model \
-  --dirs_config ../configs/data/circle_dirs.yaml
+cd $STRUCTFORMER/structformer/demo/
+python run_full_pipeline.py \
+  --dataset_base_dir $STRUCTFORMER/data_new_objects_test_split \
+  --pose_generation_model_dir $STRUCTFORMER/object_selection_network/best_model \
+  --pose_generation_model_dir $STRUCTFORMER/structformer_circle/best_model \
+  --dirs_config $STRUCTFORMER/configs/data/circle_dirs.yaml
 ```
 
 ### Evaluate Pose Generation Networks
 ```bash
-cd semantic_rearrangement/evaluation/
+cd structformer/evaluation/
 python test_{model_name}.py \
-  --dataset_base_dir /path/to/data_new_objects_test_split \
-  --model_dir /path/to/model/best_model \
-  --dirs_config ../configs/data/{structure}_dirs.yaml
+  --dataset_base_dir $STRUCTFORMER/data_new_objects_test_split \
+  --model_dir $STRUCTFORMER/model/best_model \
+  --dirs_config $STRUCTFORMER/configs/data/{structure}_dirs.yaml
 ```
 
 ### Evaluate Object Selection Network
 ```bash
-cd semantic_rearrangement/evaluation/
+cd structformer/evaluation/
 python test_object_selection_network.py \
   --dataset_base_dir /path/to/data_new_objects_test_split \
   --model_dir /path/to/model/best_model \
@@ -62,7 +69,7 @@ python test_object_selection_network.py \
 
 ### Pose Generation Networks
 ```bash
-cd semantic_rearrangement/training/
+cd structformer/training/
 python train_{model_name}.py \
   --dataset_base_dir /path/to/data_new_objects \
   --main_config ../configs/{model_name}.yaml \
@@ -71,7 +78,7 @@ python train_{model_name}.py \
 
 ### Object Selection Network
 ```bash
-cd semantic_rearrangement/training/
+cd structformer/training/
 python train_object_selection_network.py \
   --dataset_base_dir /path/to/data_new_objects \
   --main_config ../configs/object_selection_network.yaml \

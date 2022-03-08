@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from semantic_rearrangement.utils.pointnet import farthest_point_sample, index_points, square_distance
+from structformer.utils.pointnet import farthest_point_sample, index_points, square_distance
 
 # adapted from https://github.com/qq456cvb/Point-Transformers
 

@@ -55,7 +55,7 @@ python run_full_pipeline.py \
 
 ### Evaluate Pose Generation Networks
 
-Where `model_name` is one of `structformer_no_encoder`, `structformer_no_structure`, `object_selection_network`, `structformer`, and `structure` is one of `circle`, `line`, `tower`, or `dinner`:
+Where `{model_name}` is one of `structformer_no_encoder`, `structformer_no_structure`, `object_selection_network`, `structformer`, and `{structure}` is one of `circle`, `line`, `tower`, or `dinner`:
 
 ```bash
 cd $STRUCTFORMER/src/structformer/evaluation/
@@ -67,7 +67,7 @@ python test_{model_name}.py \
 
 ### Evaluate Object Selection Network
 
-Where `structure` is as above:
+Where `{structure}` is as above:
 
 ```bash
 cd $STRUCTFORMER/src/structformer/evaluation/
@@ -79,11 +79,12 @@ python test_object_selection_network.py \
 
 ## Training
 
-- Download and unzip test split of the data `/data_new_objects` from ...
+- Download vocabulary list `type_vocabs_coarse.json` from [this link](https://drive.google.com/file/d/1topawwqMSvwE8Ac-8OiwMApEqwYeR5rc/view?usp=sharing) and unzip to the `$STRUCTFORMER/data_new_objects`.
+- Download all data for [circle](https://drive.google.com/file/d/1PTGFcAWBrQmlglygNiJz6p7s0rqe2rtP/view?usp=sharing) and unzip to the `$STRUCTFORMER/data_new_objects`.
 
 ### Pose Generation Networks
 
-Where `model_name` is one of `structformer_no_encoder`, `structformer_no_structure`, `object_selection_network`, `structformer`, and `structure` is one of `circle`, `line`, `tower`, or `dinner`:
+Where `{model_name}` is one of `structformer_no_encoder`, `structformer_no_structure`, `object_selection_network`, `structformer`, and `{structure}` is one of `circle`, `line`, `tower`, or `dinner`:
 
 ```bash
 cd $STRUCTFORMER/src/structformer/training/
